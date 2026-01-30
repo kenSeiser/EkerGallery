@@ -408,3 +408,106 @@ sudo fuser -k 5000/tcp
 nohup python3 app.py > site.log 2>&1 &
 tail -f site.log
 sudo reboot
+nohup python3 app.py > site.log 2>&1 &
+tail -f site.log
+sudo pkill -9 python3
+sudo fuser -k 5000/tcp
+site.log
+> site.log
+nohup python3 app.py > site.log 2>&1 &
+tail -f site.log
+sed -i 's/port=5000/port=5001/g' app.py
+nohup python3 app.py > site.log 2>&1 &
+tail -f site.log
+grep "Temizle" app.py
+rm app.py
+nano app.py
+pkill -f app.py; nohup python3 app.py > site.log 2>&1 &
+rm app.py
+nano app.py
+pkill -f app.py; nohup python3 app.py > site.log 2>&1 &
+rm app.py
+nano app.py
+pkill -f app.py; nohup python3 app.py > site.log 2>&1 &
+pkill -f bedava_robot.py
+nano bedava_robot.py
+nano app.py
+pkill -f app.py; nohup python3 app.py > site.log 2>&1 &
+nohup /usr/bin/xvfb-run --server-args="-screen 0 1920x1080x24" -a python3 -u bedava_robot.py > robot_cikti.log 2>&1 &
+python3 birlestir.py
+rm app.py
+nano app.py
+pkill -f app.py; nohup python3 app.py > site.log 2>&1 &
+nohup bash -c "while true; do /usr/bin/xvfb-run -a python3 birlestir.py; sleep 30; done" > loop.log 2>&1 &
+tail -f loop.log
+cat birlestir.py
+nohup /usr/bin/xvfb-run --server-args="-screen 0 1920x1080x24" -a python3 -u bedava_robot.py > robot_cikti.log 2>&1 &
+nano birlestir.py
+nohup bash -c "while true; do /usr/bin/xvfb-run -a python3 birlestir.py; sleep 5; done" > loop.log 2>&1 &
+tail -f loop.log
+nano birlestir.py
+nohup /usr/bin/xvfb-run --server-args="-screen 0 1920x1080x24" -a python3 -u birlestir.py > robot_log.txt 2>&1 &
+tail -f loop.log
+cat bedava_robot.py
+nano bedava_robot.py
+pkill -f bedava_robot.py
+nano filo_baslat.sh
+bash filo_baslat.sh
+tail -f log_corsa.txt
+nano filo_baslat.py
+nano filo_baslat.sh
+bash filo_baslat.sh
+rm app.py
+nano app.py
+pkill -f app.py; nohup python3 app.py > site.log 2>&1 &
+ls -l *.txt
+tail -f log_tesla.txt
+nano app.py
+pkill -f app.py; nohup python3 app.py > site.log 2>&1 &
+sudo apt update
+sudo apt install git -y
+git config --global user.name "kenSeiser"
+git config --global user.email "ekerard@gmail.com"
+cat ~/.ssh/id_ed25519.pub
+ssh-keygen -t ed25519 -C "github_anahtar"
+cat ~/.ssh/id_ed25519.pub
+ssh-keygen -t ed25519 -C "github_anahtar"
+cat ~/.ssh/id_ed25519.pub
+nano .gitignore
+git init
+git branch -M main
+git init
+git branch -M main
+git add .
+git commit -m "EkerGallery ilk yükleme - Full Sistem"
+git add
+git commit -m "EkerGallery ilk yükleme - Full Sistem"
+rm google-chrome-stable_current_amd64.deb
+rm *.log
+rm nohup.out
+rm -rf .cache
+rm -rf chrome_profile
+git reset
+echo "venv/" > .gitignore
+echo "*.log" >> .gitignore
+echo "*.txt" >> .gitignore
+echo "__pycache__/" >> .gitignore
+echo "chrome_profile/" >> .gitignore
+echo "*.deb" >> .gitignore
+echo "nohup.out" >> .gitignore
+git add .
+git commit -m "EkerGallery Temiz Yedek"
+git push -u origin main
+git push -u origin main git@github.com:kenSeiser/EkerGallery.git
+git push -u origin main
+git remote add origin git@github.com:kenSeiser/EkerGallery.git
+git push -u origin main
+nohup /usr/bin/xvfb-run --server-args="-screen 0 1920x1080x24" -a python3 -u bedava_robot.py > robot_cikti.log 2>&1 &
+taif
+tail
+tail -f 
+ssh s
+ssh -s
+tail -f log_tesla.txt
+ls -l *.txt
+tail -f log_corsa.txt
