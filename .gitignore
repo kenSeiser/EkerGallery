@@ -1,0 +1,7 @@
+venv/
+*.log
+*.txt
+__pycache__/
+chrome_profile/
+*.deb
+nohup.out
