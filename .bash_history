@@ -511,3 +511,94 @@ ssh -s
 tail -f log_tesla.txt
 ls -l *.txt
 tail -f log_corsa.txt
+pkill -f python3
+pkill -f chrome
+pkill -f xvfb
+df -h
+rm *.log
+rm nohup.out
+rm -rf chrome_profile/
+rm -rf /tmp/.com.google.Chrome.*
+rm -rf /tmp/scoped_dir*
+rm -rf __pycache__/
+rm -rf */__pycache__/
+sudo apt-get clean
+sudo apt-get autoremove -y
+df -h
+git add .
+git commit -m "EkerGallery Final Yedek"
+git push -u origin main
+bash filo_baslat.sh
+tail -f log_tesla.txt
+pkill -f python3
+pkill -f chrome
+sudo growpart /dev/xvda 1 && sudo resize2fs /dev/xvda1
+sudo growpart /dev/nvme0n1 1
+sudo resize2fs /dev/nvme0n1p1
+df -h
+bash filo_baslat.sh
+tail -f tesla.txt
+pkill -f python3
+rm -rf /home/ubuntu/.local/share/undetected_chromedriver
+python3 bedava_robot.py
+rm -rf /home/ubuntu/.local/share/undetected_chromedriver
+python3 bedava_robot.py
+nano bedava_robot.py
+cat bedava_robot.py
+nano bedava_robot.py
+python3 bedava_robot.py
+nano bedava_robot.py
+python bedava_robot.py
+python3 bedava_robot.py
+nano bedava_robot.py
+python3 bedava_robot.py
+nano bedava_robot.py
+python3 bedava_robot.py
+nano bedava_robot.py
+python3 bedava_robot.py
+cat filo_baslat.sh
+nano filo_baslat.sh
+bash filo_baslat.sh
+tail -f log_tesla.txt
+pkill -f python3
+rm -rf /home/ubuntu/.local/share/undetected_chromedriver
+python3 bedava_robot.py "https://www.sahibinden.com/opel-corsa?sorting=date_desc" "test_surusu"
+pkill -f python3
+rm -rf /home/ubuntu/.local/share/undetected_chromedriver
+python3 bedava_robot.py "https://www.sahibinden.com/opel-corsa?sorting=date_desc" "test_surusu"
+bash filo_baslat.sh
+tail -f log_tesla.txt
+pkill -f python3
+rm -rf /home/ubuntu/.local/share/undetected_chromedriver
+mkdir -p /home/ubuntu/sofor
+rm -rf /home/ubuntu/.local/share/undetected_chromedriver
+mkdir -p /home/ubuntu/sofor
+google-chrome --version
+nano bedava_robot.py
+cd /home/ubuntu
+cd/home/ubuntu
+bash filo_baslat.sh
+tail -f log_tesla.txt
+bash filo_baslat.sh
+tail -f log_tesla.txt
+pskill -f python3
+pkill -f python3
+nano bedava_robot.py
+pkill -f python3
+rm -rf /home/ubuntu/.local/share/undetected_chromedriver
+python3 bedava_robot.py "https://www.sahibinden.com" "kurulum_testi"
+pkill -f python3
+rm -rf /home/ubuntu/.local/share/undetected_chromedriver
+nano bedava_robot.py
+python3 bedava_robot.py "https://www.sahibinden.com" "test_v144"
+pkill -f python3
+rm -rf /home/ubuntu/.local/share/undetected_chromedriver
+nano bedava_robot.py
+python3 bedava_robot.py "https://www.sahibinden.com" "test_v144"
+bash filo_baslat.sh
+ttail -f log_tesla.txt
+tail -f log_tesla.txt
+pkill -f python3
+rm -rf /home/ubuntu/.local/share/undetected_chromedriver
+import sys
+import requests
