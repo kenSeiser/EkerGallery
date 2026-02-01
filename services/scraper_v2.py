@@ -98,7 +98,16 @@ class VehicleScraper:
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-infobars")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--no-first-run")
+        options.add_argument("--no-service-autorun")
+        options.add_argument("--password-store=basic")
+        
+        # Random window size
+        win_size = random.choice(["1920,1080", "1366,768", "1536,864", "1440,900"])
+        options.add_argument(f"--window-size={win_size}")
+        
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--lang=tr-TR")
         options.page_load_strategy = 'eager'
@@ -107,11 +116,7 @@ class VehicleScraper:
         user_data_dir = tempfile.mkdtemp()
         options.add_argument(f"--user-data-dir={user_data_dir}")
         
-        # User Agent
-        options.add_argument(
-            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-            'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        )
+        # User Agent - Let uc handle it or random logic
         
         # Proxy
         if self.use_proxy:
@@ -123,11 +128,20 @@ class VehicleScraper:
         # Driver oluştur
         driver_path = self.DRIVER_PATH if os.path.exists(self.DRIVER_PATH) else None
         
-        self.driver = uc.Chrome(
-            options=options,
-            driver_executable_path=driver_path,
-            version_main=CHROME_VERSION
-        )
+        # Try to use version_main=144 first, if fails, fallback to auto
+        try:
+            self.driver = uc.Chrome(
+                options=options,
+                driver_executable_path=driver_path,
+                version_main=CHROME_VERSION
+            )
+        except Exception as e:
+            print(f"⚠️ Driver init failed with version {CHROME_VERSION}, trying auto... Error: {e}")
+            self.driver = uc.Chrome(
+                options=options,
+                driver_executable_path=driver_path
+            )
+
         self.driver.set_page_load_timeout(120)
         
         self._update_status(message="Chrome başlatıldı", progress_percent=10)
@@ -199,6 +213,130 @@ class VehicleScraper:
         except:
             return 0
     
+    def _human_scroll(self):
+        """İnsan benzeri sayfa kaydırma simülasyonu"""
+        try:
+            # Rastgele scroll miktarları
+            scroll_amounts = [300, 500, 700, 400, 600]
+            for amount in random.sample(scroll_amounts, 3):
+                self.driver.execute_script(f"window.scrollBy(0, {amount});")
+                time.sleep(random.uniform(0.5, 1.5))
+            
+            # Bazen yukarı kaydır (gerçek kullanıcı davranışı)
+            if random.random() > 0.7:
+                self.driver.execute_script("window.scrollBy(0, -200);")
+                time.sleep(random.uniform(0.3, 0.8))
+        except:
+            pass
+    
+
+    def _bypass_bot_check(self) -> bool:
+        """
+        Sahibinden'in bot kontrolünü otomatik geç.
+        BRUTE FORCE: Her şeyi tara, logla ve tıkla.
+        """
+        try:
+            page_source = self.driver.page_source.lower()
+            bot_keywords = ["basılı tutunuz", "press and hold", "robot", "doğrulama", "captcha", "unusual", "olağandışı"]
+            if not any(k in page_source for k in bot_keywords):
+                return False
+            
+            print("🚀 BRUTE FORCE DEBUG Başlatıldı!", flush=True)
+            self.driver.save_screenshot("logs/live_1_initial.png")
+            
+            def scan_and_click_anything(prefix="main"):
+                print(f"  🔍 [{prefix}] Tüm interaktif elementler taranıyor...", flush=True)
+                
+                # Tüm potansiyel butonlar
+                elements = self.driver.find_elements(By.CSS_SELECTOR, "button, a, div[role='button'], span[class*='cb'], i[class*='cb']")
+                print(f"    - Toplam {len(elements)} aday element bulundu.", flush=True)
+                
+                candidates = []
+                for idx, elem in enumerate(elements):
+                    try:
+                        if not elem.is_displayed(): continue
+                        
+                        loc = elem.location
+                        size = elem.size
+                        aria = (elem.getAttribute('aria-label') or "").lower()
+                        text = (elem.text or "").lower()
+                        cls = (elem.getAttribute('class') or "").lower()
+                        
+                        # Sahibinden logosunu ele
+                        if "sahibinden" in text or "sahibinden" in aria: continue
+                        
+                        # Element bilgisini logla
+                        print(f"    [{idx}] Pos:({loc['x']},{loc['y']}) Size:{size['width']}x{size['height']} Text:'{text}' Aria:'{aria}' Class:'{cls}'", flush=True)
+                        
+                        # Puanlama (Sol tarafta ve küçük olanlar accessibility butonu olma adayıdır)
+                        score = 0
+                        if loc['x'] < 200: score += 50
+                        if size['width'] < 100 and size['height'] < 100: score += 30
+                        if any(x in aria or x in text or x in cls for x in ['access', 'cb', 'erişi', 'button']): score += 100
+                        
+                        if score > 0:
+                            candidates.append({'elem': elem, 'score': score, 'id': idx})
+                    except: continue
+
+                # En yüksek puanlıları dene
+                candidates.sort(key=lambda x: x['score'], reverse=True)
+                for cand in candidates[:3]:
+                    try:
+                        print(f"    👉 Aday [{cand['id']}] deneniyor (Puan: {cand['score']})", flush=True)
+                        self.driver.save_screenshot(f"logs/live_2_{prefix}_attempt_{cand['id']}.png")
+                        actions = ActionChains(self.driver)
+                        actions.move_to_element(cand['elem']).click().perform()
+                        
+                        # Tıkladıktan sonra barın çıkıp çıkmadığını 15sn izle
+                        if monitor_bar_live(prefix, cand['id']):
+                            return True
+                    except: continue
+                return False
+
+            def monitor_bar_live(prefix, attempt_id, duration=15):
+                print(f"    ⏱️ Bar/Onay bekleniyor...", flush=True)
+                for s in range(1, duration + 1):
+                    time.sleep(1)
+                    if s % 5 == 0:
+                        self.driver.save_screenshot(f"logs/live_3_{prefix}_att{attempt_id}_wait_{s}s.png")
+                        print(f"      - {s}. saniye...", flush=True)
+                
+                # Onay barı kontrolü
+                confirm_selectors = [".cb-lb", ".cb-lb-t", "#challenge-stage", "[class*='checkbox']", "button[type='submit']"]
+                for sel in confirm_selectors:
+                    try:
+                        btn = self.driver.find_element(By.CSS_SELECTOR, sel)
+                        if btn.is_displayed():
+                            print(f"    🎯 ONAY BULUNDU! ({sel})", flush=True)
+                            self.driver.save_screenshot(f"logs/live_4_{prefix}_success.png")
+                            btn.click()
+                            time.sleep(5)
+                            return True
+                    except: continue
+                return False
+
+            # Ana sayfa ve Iframe'leri tara
+            if scan_and_click_anything("main"): return True
+            
+            iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
+            for i, frame in enumerate(iframes):
+                try:
+                    self.driver.switch_to.frame(i)
+                    if scan_and_click_anything(f"iframe_{i}"):
+                        self.driver.switch_to.default_content()
+                        return True
+                    self.driver.switch_to.default_content()
+                except:
+                    self.driver.switch_to.default_content()
+                    continue
+
+            return False
+            
+        except Exception as e:
+            print(f"❌ Brute Force Error: {e}", flush=True)
+            self.driver.switch_to.default_content()
+            return False
+    
     def _extract_listing_details(self) -> dict:
         """İlan detay sayfasından verileri çek"""
         data = {}
@@ -221,7 +359,7 @@ class VehicleScraper:
             except:
                 data["fiyat"] = 0
             
-            # Detay listesini parse et
+            # Detay listesini parse et (Dinamik - Hepsini al)
             try:
                 detail_items = self.driver.find_elements(
                     By.CSS_SELECTOR, "ul.classifiedInfoList li"
@@ -231,19 +369,27 @@ class VehicleScraper:
                         label = item.find_element(By.TAG_NAME, "strong").text.strip()
                         value = item.find_element(By.TAG_NAME, "span").text.strip()
                         
+                        # Config'deki mapping varsa kullan, yoksa olduğu gibi kaydet (slugify ederek)
                         if label in SCRAPE_FIELDS:
                             field_name = SCRAPE_FIELDS[label]
+                        else:
+                            # "Motor Gücü" -> "motor_gucu"
+                            field_name = label.lower().replace(" ", "_").replace("ç", "c").replace("ğ", "g").replace("ı", "i").replace("ö", "o").replace("ş", "s").replace("ü", "u")
+                        
+                        # Özel parse işlemleri
+                        if field_name == "yil":
+                            data[field_name] = self._parse_year(value)
+                        elif field_name == "km":
+                            data[field_name] = self._parse_km(value)
+                        elif field_name == "motor_hacmi":
+                            data[field_name] = int(''.join(filter(str.isdigit, value)) or 0)
+                        elif field_name == "motor_gucu":
+                            data[field_name] = int(''.join(filter(str.isdigit, value)) or 0)
+                        elif field_name == "fiyat": # Bazen detayda da yazar
+                            continue 
+                        else:
+                            data[field_name] = value
                             
-                            if field_name == "yil":
-                                data[field_name] = self._parse_year(value)
-                            elif field_name == "km":
-                                data[field_name] = self._parse_km(value)
-                            elif field_name == "motor_hacmi":
-                                data[field_name] = int(''.join(filter(str.isdigit, value)) or 0)
-                            elif field_name == "motor_gucu":
-                                data[field_name] = int(''.join(filter(str.isdigit, value)) or 0)
-                            else:
-                                data[field_name] = value
                     except:
                         continue
             except:
@@ -254,12 +400,75 @@ class VehicleScraper:
                 location = self.driver.find_element(
                     By.CSS_SELECTOR, "div.classifiedInfo h2"
                 ).text.strip()
-                parts = location.split(" / ")
-                if len(parts) >= 2:
+                data["konum_tam"] = location
+                parts = [p.strip() for p in location.split("/")]
+                
+                if len(parts) >= 1:
                     data["il"] = parts[0]
-                    data["ilce"] = parts[1] if len(parts) > 1 else ""
+                if len(parts) >= 2:
+                    data["ilce"] = parts[1]
+                if len(parts) >= 3:
+                    data["mahalle"] = parts[2]
             except:
                 pass
+            
+            # ========== HASAR BİLGİSİ (Boyalı/Değişen) ==========
+            data["boyali_parcalar"] = []
+            data["degisen_parcalar"] = []
+            data["hasar_puani"] = 0
+            
+            try:
+                # Sayfayı aşağı kaydır (hasar bilgisi genelde altta)
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 2);")
+                time.sleep(0.5)
+                
+                # Tramer/Ekspertiz bölümünü bul
+                damage_sections = self.driver.find_elements(
+                    By.CSS_SELECTOR, "div.classified-expert-report, div.damage-info, div.tramer-section, ul.expertiz-list"
+                )
+                
+                for section in damage_sections:
+                    section_text = section.text.lower()
+                    
+                    # Boyalı parçaları bul
+                    if "boyalı" in section_text or "boyali" in section_text:
+                        items = section.find_elements(By.CSS_SELECTOR, "li, span.part-name, div.part")
+                        for item in items:
+                            part_text = item.text.strip()
+                            if part_text and "boyalı" in part_text.lower():
+                                data["boyali_parcalar"].append(part_text)
+                    
+                    # Değişen parçaları bul
+                    if "değişen" in section_text or "degisen" in section_text:
+                        items = section.find_elements(By.CSS_SELECTOR, "li, span.part-name, div.part")
+                        for item in items:
+                            part_text = item.text.strip()
+                            if part_text and "değişen" in part_text.lower():
+                                data["degisen_parcalar"].append(part_text)
+                
+                # Alternatif: Tablo formatında hasar bilgisi
+                try:
+                    damage_table = self.driver.find_elements(By.CSS_SELECTOR, "table.damage-table tr, div.expertReport div")
+                    for row in damage_table:
+                        row_text = row.text.lower()
+                        if "boyalı" in row_text or "boyali" in row_text:
+                            data["boyali_parcalar"].append(row.text.strip())
+                        elif "değişen" in row_text or "degisen" in row_text:
+                            data["degisen_parcalar"].append(row.text.strip())
+                except:
+                    pass
+                
+                # Hasar Puanı Hesapla
+                # Boyalı: +5 puan, Değişen: +15 puan (max 100)
+                boyali_count = len(data["boyali_parcalar"])
+                degisen_count = len(data["degisen_parcalar"])
+                data["hasar_puani"] = min(100, (boyali_count * 5) + (degisen_count * 15))
+                
+                if data["hasar_puani"] > 0:
+                    print(f"🔧 Hasar tespit: {boyali_count} boyalı, {degisen_count} değişen = {data['hasar_puani']} puan")
+                    
+            except Exception as e:
+                print(f"⚠️ Hasar bilgisi çekilemedi: {e}")
             
             data["url"] = self.driver.current_url
             
@@ -287,7 +496,11 @@ class VehicleScraper:
         self._update_status(message=f"{brand} {model} taranıyor...")
         
         self.driver.get(category_url)
-        time.sleep(random.uniform(5, 8))
+        # İnsan benzeri yavaş yükleme bekleme
+        time.sleep(random.uniform(8, 15))
+        
+        # Sayfayı yavaşça kaydır (insan davranışı)
+        self._human_scroll()
         
         page_number = 1
         category_scraped = 0
@@ -301,21 +514,42 @@ class VehicleScraper:
             )
             
             print(f"\n📄 Sayfa {page_number}/{max_pages}")
-            time.sleep(random.uniform(3, 5))
+            # Sayfa arası bekleme (5-12 saniye rastgele)
+            time.sleep(random.uniform(5, 12))
             
-            # CAPTCHA kontrolü
-            if "captcha" in self.driver.page_source.lower():
-                self._update_status(message="⚠️ CAPTCHA tespit edildi! Bekleniyor...")
-                print("⚠️ CAPTCHA tespit edildi! 2 dakika bekleniyor...")
-                time.sleep(120)
-                self.driver.refresh()
+            # CAPTCHA veya Engel kontrolü
+            page_source = self.driver.page_source.lower()
+            if "captcha" in page_source or "olağandışı" in page_source or "unusual" in page_source or "basılı tutunuz" in page_source or "robot" in page_source:
+                self._update_status(message="⚠️ Bot tespiti! Bypass deneniyor...")
+                print("⚠️ Bot tespiti! Bypass deneniyor...")
+                
+                # Önce bypass dene
+                if self._bypass_bot_check():
+                    print("✅ Bot kontrolü geçildi, devam ediliyor...")
+                    time.sleep(random.uniform(3, 5))
+                else:
+                    # Bypass başarısız, bekleme yap
+                    print("⚠️ Bypass başarısız, 60-90 saniye bekleniyor...")
+                    wait_time = random.uniform(60, 90)
+                    time.sleep(wait_time)
+                    self.driver.refresh()
+                    time.sleep(10)
                 continue
             
             # İlan listesi
             listings = self.driver.find_elements(By.CSS_SELECTOR, "tr.searchResultsItem")
             
             if len(listings) == 0:
-                print("⚠️ İlan bulunamadı, sonraki kategoriye geçiliyor")
+                print("⚠️ İlan bulunamadı, beklenmedik durum!")
+                try:
+                    debug_time = int(time.time())
+                    self.driver.save_screenshot(f"debug_screen_{debug_time}.png")
+                    with open(f"debug_source_{debug_time}.html", "w", encoding="utf-8") as f:
+                        f.write(self.driver.page_source)
+                    print(f"📸 Debug görüntü kaydedildi: debug_screen_{debug_time}.png")
+                except:
+                    pass
+                print("⚠️ Sonraki kategoriye geçiliyor")
                 break
             
             print(f"📋 {len(listings)} ilan bulundu")
@@ -344,7 +578,8 @@ class VehicleScraper:
                     time.sleep(random.uniform(0.3, 0.7))
                     
                     ActionChains(self.driver).key_down(Keys.CONTROL).click(link_tag).key_up(Keys.CONTROL).perform()
-                    time.sleep(2)
+                    # Her ilan arası rastgele bekleme (3-8 saniye)
+                    time.sleep(random.uniform(3, 8))
                     
                     if len(self.driver.window_handles) < 2:
                         continue
@@ -420,18 +655,23 @@ class VehicleScraper:
         
         self._update_status(message="Scraper başlatılıyor...", progress_percent=0)
         
+        print(f"DEBUG: run called with brands={brands}")
+        
         try:
             self._create_driver()
             self._load_cookies()
             
             target_brands = list(brands) if brands else list(VEHICLE_CATEGORIES.keys())
+            print(f"DEBUG: target_brands={target_brands}")
             total_brands = len(target_brands)
             
             for brand_idx, brand_key in enumerate(target_brands):
                 if self.should_stop:
                     break
-                    
+                
+                print(f"DEBUG: Checking brand {brand_key}")    
                 if brand_key not in VEHICLE_CATEGORIES:
+                    print(f"DEBUG: Skipping {brand_key} (not in config)")
                     continue
                 
                 brand_info = VEHICLE_CATEGORIES[brand_key]
@@ -442,6 +682,7 @@ class VehicleScraper:
                 self._update_status(progress_percent=base_progress)
                 
                 models = list(brand_info["models"].items())
+                print(f"DEBUG: Found models for {brand_key}: {models}")
                 total_models = len(models)
                 
                 for model_idx, (model_key, model_info) in enumerate(models):
@@ -454,20 +695,35 @@ class VehicleScraper:
                             continue
                     
                     category_name = f"{brand_name} {model_info['name']}"
+                    print(f"DEBUG: Processing {brand_key} {model_key} -> URL: {model_info['url']}")
                     
                     # Model bazlı ilerleme
                     model_progress = base_progress + int((model_idx / total_models) * (70 / total_brands))
                     self._update_status(progress_percent=model_progress)
                     
                     try:
-                        self.scrape_category(
-                            category_url=model_info["url"],
-                            category_name=category_name,
-                            brand=brand_name,
-                            model=model_info["name"]
-                        )
+                        # Check if method is scrape_category or _scrape_category
+                        if hasattr(self, 'scrape_category'):
+                            self.scrape_category(
+                                category_url=model_info["url"],
+                                category_name=category_name,
+                                brand=brand_name,
+                                model=model_info["name"]
+                            )
+                        elif hasattr(self, '_scrape_category'):
+                            self._scrape_category(
+                                category_url=model_info["url"],
+                                category_name=category_name,
+                                brand=brand_name,
+                                model=model_info["name"]
+                            )
+                        else:
+                            print("❌ Error: neither scrape_category nor _scrape_category found")
+                            
                     except Exception as e:
                         print(f"❌ Kategori hatası: {e}")
+                        import traceback
+                        traceback.print_exc()
                         self._update_status(message=f"Hata: {e}")
                         continue
                     
@@ -477,6 +733,8 @@ class VehicleScraper:
             
         except Exception as e:
             print(f"❌ Genel Hata: {e}")
+            import traceback
+            traceback.print_exc()
             self._update_status(message=f"Hata: {e}")
         finally:
             if self.driver:
@@ -517,4 +775,5 @@ if __name__ == "__main__":
         use_proxy=args.proxy
     )
     
-    scraper.run(brands=args.brands)
+    brands_to_scrape = [b.lower() for b in args.brands] if args.brands else None
+    scraper.run(brands=brands_to_scrape)

@@ -84,9 +84,11 @@ class Database:
         )
         return result.upserted_id is not None
 
-    def get_all_vehicles(self, filters: dict = None, limit: int = None) -> list:
+    def get_all_vehicles(self, filters: dict = None, limit: int = None, skip: int = 0) -> list:
         query = filters or {}
         cursor = self.vehicles.find(query).sort("updated_at", DESCENDING)
+        if skip:
+            cursor = cursor.skip(skip)
         if limit:
             cursor = cursor.limit(limit)
         return list(cursor)
@@ -140,20 +142,36 @@ class Database:
             result = self.vehicles.bulk_write(operations)
             print(f"✅ {result.modified_count} araç için AI tahmini güncellendi")
 
-    def get_stats(self) -> dict:
-        total = self.vehicles.count_documents({})
-        firsatlar = self.vehicles.count_documents({"ai_firsat": True})
+    def get_stats(self, filters: dict = None) -> dict:
+        query = filters or {}
+        
+        # Toplam araç sayısı (filtreye göre)
+        total = self.vehicles.count_documents(query)
+        
+        # Fırsat sayısı (filtre + ai_firsat)
+        firsat_query = query.copy()
+        firsat_query["ai_firsat"] = True
+        firsatlar = self.vehicles.count_documents(firsat_query)
+        
+        # Marka dağılımı (filtreye göre)
         brand_pipeline = [
+            {"$match": query},
             {"$group": {"_id": "$marka", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}}
         ]
         brand_stats = list(self.vehicles.aggregate(brand_pipeline))
+        
+        # Ortalama fiyat (filtreye göre)
+        avg_match = query.copy()
+        avg_match["fiyat"] = {"$gt": 0}
+        
         avg_pipeline = [
-            {"$match": {"fiyat": {"$gt": 0}}},
+            {"$match": avg_match},
             {"$group": {"_id": None, "avg_price": {"$avg": "$fiyat"}}}
         ]
         avg_result = list(self.vehicles.aggregate(avg_pipeline))
         avg_price = avg_result[0]["avg_price"] if avg_result else 0
+        
         return {
             "total": total,
             "firsatlar": firsatlar,

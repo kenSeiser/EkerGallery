@@ -105,7 +105,7 @@ class PricePredictionModel:
         else:
             return self.scaler.transform(encoded_df.values)
     
-    def train(self, min_samples: int = 50):
+    def train(self, min_samples: int = 10):
         """
         Modeli eğit
         
@@ -118,7 +118,8 @@ class PricePredictionModel:
         vehicles = db.get_all_vehicles({"fiyat": {"$gt": 100000}})
         
         if len(vehicles) < min_samples:
-            print(f"⚠️ Yetersiz veri: {len(vehicles)} < {min_samples}")
+            print(f"⚠️ Yetersiz veri: {len(vehicles)} < {min_samples}. Basit tahmin kullanılacak.")
+            self.is_trained = False
             return False
         
         # DataFrame oluştur
@@ -137,7 +138,8 @@ class PricePredictionModel:
                 continue
         
         if len(data) < min_samples:
-            print(f"⚠️ Geçerli veri yetersiz: {len(data)} < {min_samples}")
+            print(f"⚠️ Geçerli veri yetersiz. Basit tahmin kullanılacak.")
+            self.is_trained = False
             return False
         
         df = pd.DataFrame(data)
@@ -176,6 +178,44 @@ class PricePredictionModel:
         
         return True
     
+    def _simple_predict(self, vehicle: dict) -> int:
+        """ML modeli yoksa basit kural tabanlı tahmin"""
+        try:
+            # Benzer araçların ortalamasını bul
+            marka = vehicle.get("marka")
+            model = vehicle.get("model")
+            yil = vehicle.get("yil", 2020)
+            km = vehicle.get("km", 100000)
+            
+            # Veritabanından benzer araçları çek
+            similars = db.get_vehicles_by_model(marka, model)
+            if not similars:
+                return 0
+                
+            prices = [s.get("fiyat", 0) for s in similars if s.get("fiyat", 0) > 50000]
+            if not prices:
+                return 0
+                
+            avg_price = sum(prices) / len(prices)
+            
+            # KM ve Yıl düzeltmesi (Basit mantık)
+            avg_km = sum([s.get("km", 0) for s in similars]) / len(similars)
+            
+            # Her 10.000 KM farkı için %2 değişim
+            km_diff = avg_km - km
+            km_factor = (km_diff / 10000) * 0.02
+            
+            # Hasar puanı düzeltmesi
+            # Her 10 puan = yaklaşık %2.5 fiyat düşüşü
+            # Boyalı (5 puan) = %1.25 düşüş, Değişen (15 puan) = %3.75 düşüş
+            hasar_puani = vehicle.get("hasar_puani", 0)
+            hasar_factor = -(hasar_puani / 10) * 0.025  # Negatif (fiyatı düşürür)
+            
+            final_price = avg_price * (1 + km_factor + hasar_factor)
+            return int(max(0, final_price))
+        except:
+            return 0
+
     def predict(self, vehicle: dict) -> int:
         """
         Tek araç için fiyat tahmini
@@ -186,8 +226,9 @@ class PricePredictionModel:
         Returns:
             int: Tahmin edilen fiyat
         """
+        # Eğer model eğitilmemişse basit tahmin kullan
         if not self.is_trained:
-            return 0
+            return self._simple_predict(vehicle)
         
         try:
             features = self._prepare_features(vehicle)
@@ -198,8 +239,8 @@ class PricePredictionModel:
             prediction = self.model.predict(X_encoded)[0]
             return int(max(0, prediction))
         except Exception as e:
-            print(f"⚠️ Tahmin hatası: {e}")
-            return 0
+            print(f"⚠️ ML Hatası, simple predict deneniyor: {e}")
+            return self._simple_predict(vehicle)
     
     def predict_batch(self, vehicles: list) -> list:
         """
@@ -213,14 +254,15 @@ class PricePredictionModel:
         """
         if not self.is_trained:
             print("⚠️ Model henüz eğitilmedi")
-            return []
+            # Even if not trained, simple_predict will be called by predict()
+            # So we don't need to return [] here, just let the loop run
         
         results = []
         
         for v in vehicles:
             try:
                 fiyat = v.get("fiyat", 0)
-                if fiyat < 50000:
+                if fiyat < 10000:
                     continue
                 
                 tahmin = self.predict(v)
@@ -248,10 +290,6 @@ class PricePredictionModel:
         # Önce modeli eğit (varsa güncelle)
         self.train()
         
-        if not self.is_trained:
-            print("❌ Model eğitilemedi")
-            return
-        
         # Tüm araçları çek
         vehicles = db.get_all_vehicles({"fiyat": {"$gt": 50000}})
         print(f"📊 {len(vehicles)} araç için tahmin yapılacak")
@@ -260,11 +298,13 @@ class PricePredictionModel:
         predictions = self.predict_batch(vehicles)
         
         # Veritabanına kaydet
-        db.bulk_update_ai_predictions(predictions)
-        
-        # İstatistik
-        firsatlar = sum(1 for p in predictions if p["ai_firsat"])
-        print(f"✅ Tahmin tamamlandı: {len(predictions)} araç, {firsatlar} fırsat")
+        if predictions:
+            db.bulk_update_ai_predictions(predictions)
+            # İstatistik
+            firsatlar = sum(1 for p in predictions if p["ai_firsat"])
+            print(f"✅ Tahmin tamamlandı: {len(predictions)} araç, {firsatlar} fırsat")
+        else:
+            print("⚠️ Hiçbir tahmin yapılamadı")
 
 
 # Singleton instance

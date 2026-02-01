@@ -63,3 +63,5 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+\n# Debug Files\ndebug_screen_*.png\ndebug_source_*.html\nlogs/*.png\nlogs/*.html
+\n# Private Keys\n*.pem

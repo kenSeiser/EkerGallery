@@ -124,23 +124,43 @@ def dashboard():
 def api_vehicles():
     """Araç listesi API"""
     try:
-        brand = request.args.get('brand')
+        # Filtre parametrelerini al
+        brand = request.args.get('brand') or request.args.get('marka')
         model = request.args.get('model')
-        min_price = request.args.get('min_price', type=int)
-        max_price = request.args.get('max_price', type=int)
-        min_year = request.args.get('min_year', type=int)
-        max_year = request.args.get('max_year', type=int)
-        fuel = request.args.get('fuel')
-        transmission = request.args.get('transmission')
+        fuel = request.args.get('fuel') or request.args.get('yakit')
+        transmission = request.args.get('gear') or request.args.get('vites')
+        min_price = request.args.get('min_price')
+        max_price = request.args.get('max_price')
+        min_year = request.args.get('min_year')
+        
         only_firsatlar = request.args.get('firsatlar') == 'true'
-        limit = request.args.get('limit', default=500, type=int)
+        
+        # Pagination
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        skip = (page - 1) * limit
         
         filters = {}
         
-        if brand:
-            filters['marka'] = brand
-        if model:
-            filters['model'] = model
+        if brand and model:
+            # Search by marka+model OR category containing both
+            category_pattern = f".*{brand}.*{model}.*"
+            filters['$or'] = [
+                {'marka': brand, 'model': model},
+                {'category': {'$regex': category_pattern, '$options': 'i'}}
+            ]
+        elif brand:
+            # Search by marka OR category containing brand
+            filters['$or'] = [
+                {'marka': brand},
+                {'category': {'$regex': f".*{brand}.*", '$options': 'i'}}
+            ]
+        elif model:
+            filters['$or'] = [
+                {'model': model},
+                {'category': {'$regex': f".*{model}.*", '$options': 'i'}}
+            ]
+            
         if fuel:
             filters['yakit'] = fuel
         if transmission:
@@ -148,21 +168,20 @@ def api_vehicles():
         if only_firsatlar:
             filters['ai_firsat'] = True
         
-        if min_price or max_price:
-            filters['fiyat'] = {}
-            if min_price:
-                filters['fiyat']['$gte'] = min_price
-            if max_price:
-                filters['fiyat']['$lte'] = max_price
+        if min_price:
+            filters.setdefault('fiyat', {})['$gte'] = int(min_price)
+        if max_price:
+            filters.setdefault('fiyat', {})['$lte'] = int(max_price)
+        if min_year:
+            filters['yil'] = {'$gte': int(min_year)}
         
-        if min_year or max_year:
-            filters['yil'] = {}
-            if min_year:
-                filters['yil']['$gte'] = min_year
-            if max_year:
-                filters['yil']['$lte'] = max_year
+        # Toplam sayıyı al
+        total_count = db.vehicles.count_documents(filters)
+        print(f"DEBUG: Total count for filters {filters}: {total_count}")
         
-        vehicles = db.get_all_vehicles(filters, limit=limit)
+        # Verileri çek (Skip ile)
+        vehicles = db.get_all_vehicles(filters, limit=limit, skip=skip)
+        print(f"DEBUG: Fetched {len(vehicles)} vehicles. Skip: {skip}, Limit: {limit}")
         
         for v in vehicles:
             v['_id'] = str(v['_id'])
@@ -172,8 +191,11 @@ def api_vehicles():
         
         return jsonify({
             'success': True,
-            'count': len(vehicles),
-            'data': vehicles
+            'count': total_count,
+            'data': vehicles,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total_count + limit - 1) // limit if limit > 0 else 1
         })
     except Exception as e:
         return jsonify({
@@ -186,9 +208,45 @@ def api_vehicles():
 @app.route('/api/stats')
 @login_required
 def api_stats():
-    """İstatistikler API"""
+    """İstatistikler API - Filtreye göre istatistik döndürür"""
     try:
-        stats = db.get_stats()
+        # Filtre parametrelerini al
+        brand = request.args.get('brand') or request.args.get('marka')
+        model = request.args.get('model')
+        min_price = request.args.get('min_price')
+        max_price = request.args.get('max_price')
+        min_year = request.args.get('min_year') or request.args.get('yil')
+        
+        filters = {}
+        
+        if brand and model:
+            # Search by marka+model OR category containing both
+            category_pattern = f".*{brand}.*{model}.*"
+            filters['$or'] = [
+                {'marka': brand, 'model': model},
+                {'category': {'$regex': category_pattern, '$options': 'i'}}
+            ]
+        elif brand:
+            # Search by marka OR category containing brand
+            filters['$or'] = [
+                {'marka': brand},
+                {'category': {'$regex': f".*{brand}.*", '$options': 'i'}}
+            ]
+        elif model:
+            filters['$or'] = [
+                {'model': model},
+                {'category': {'$regex': f".*{model}.*", '$options': 'i'}}
+            ]
+            
+        if min_price:
+            filters.setdefault('fiyat', {})['$gte'] = int(min_price)
+        if max_price:
+            filters.setdefault('fiyat', {})['$lte'] = int(max_price)
+            
+        if min_year:
+            filters['yil'] = {'$gte': int(min_year)}
+            
+        stats = db.get_stats(filters)
         return jsonify({
             'success': True,
             'data': stats
@@ -305,112 +363,82 @@ def clean_duplicates():
 @app.route('/update-ai', methods=['POST'])
 @login_required
 def update_ai():
-    """AI tahminlerini güncelle"""
-    def run_ai_update():
-        global scraping_status
-        try:
-            scraping_status['active'] = True
-            scraping_status['message'] = 'AI modeli eğitiliyor...'
-            scraping_status['progress_percent'] = 10
-            broadcast_progress()
-            
-            from services.ai_model import price_model
-            
-            scraping_status['message'] = 'Model eğitimi tamamlandı, tahminler yapılıyor...'
-            scraping_status['progress_percent'] = 50
-            broadcast_progress()
-            
-            price_model.update_all_predictions()
-            
-            scraping_status['message'] = 'AI tahminleri başarıyla güncellendi!'
-            scraping_status['progress_percent'] = 100
-            broadcast_progress()
-            
-        except Exception as e:
-            scraping_status['errors'].append(str(e))
-            scraping_status['message'] = f'Hata: {e}'
-        finally:
-            time.sleep(2)
-            scraping_status['active'] = False
-            scraping_status['progress_percent'] = 0
-            broadcast_progress()
-    
-    thread = threading.Thread(target=run_ai_update)
-    thread.start()
-    
-    return jsonify({
-        'success': True,
-        'message': 'AI güncelleme başlatıldı'
-    })
+    """AI tahminlerini güncelle (Arka Plan İşlemi)"""
+    try:
+        # Subprocess ile başlat (Fire and forget)
+        import subprocess
+        subprocess.Popen(['python3', 'run_ai_job.py'], 
+                         cwd=os.path.dirname(os.path.abspath(__file__)),
+                         stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
+        
+        return jsonify({
+            'success': True,
+            'message': 'AI güncelleme işlemi arka planda başlatıldı. Bu işlem birkaç dakika sürebilir.'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Hata: {str(e)}'
+        })
 
 
 @app.route('/start-scraping', methods=['POST'])
 @login_required
 def start_scraping():
-    """Veri çekmeyi başlat (arka planda)"""
-    global scraping_status
-    
-    if scraping_status['active']:
+    """Veri çekmeyi başlat (arka planda - cron_runner.sh üzerinden)"""
+    try:
+        import subprocess
+        # Async başlat
+        subprocess.Popen(['bash', 'cron_runner.sh', 'scrape'], 
+                         cwd=os.path.dirname(os.path.abspath(__file__)),
+                         stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Scraping işlemi arka planda başlatıldı. Admin panelinden logları takip edebilirsiniz.'
+        })
+    except Exception as e:
         return jsonify({
             'success': False,
-            'error': 'Zaten bir scraping işlemi devam ediyor'
+            'error': f'Başlatma hatası: {str(e)}'
         })
-    
-    data = request.get_json(silent=True) or {}
-    brands = data.get('brands', [])
-    
-    def run_scraping():
-        global scraping_status
-        try:
-            scraping_status = {
-                "active": True,
-                "current_brand": "",
-                "current_model": "",
-                "current_page": 0,
-                "total_scraped": 0,
-                "new_listings": 0,
-                "progress_percent": 0,
-                "message": "Scraping başlatılıyor...",
-                "errors": []
-            }
-            broadcast_progress()
+
+@app.route('/admin')
+@login_required
+def admin_panel():
+    return render_template('admin.html', username=session.get('username'))
+
+@app.route('/api/logs')
+@login_required
+def api_logs():
+    """Son logları getir"""
+    try:
+        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+        if not os.path.exists(log_dir):
+            return jsonify({'success': True, 'logs': 'Henüz log dosyası yok.'})
             
-            from services.scraper_v2 import VehicleScraper
+        # En yeni log dosyasını bul
+        files = [os.path.join(log_dir, f) for f in os.listdir(log_dir) if f.endswith('.log')]
+        if not files:
+            return jsonify({'success': True, 'logs': 'Log dosyası bulunamadı.'})
             
-            scraper = VehicleScraper(headless=True, use_proxy=False)
-            scraper.status_callback = update_scraping_status
+        latest_file = max(files, key=os.path.getmtime)
+        
+        # Son 50 satırı oku
+        with open(latest_file, 'r', encoding='utf-8', errors='ignore') as f:
+            # Tümünü oku, son 2000 karakteri al (basit tail)
+            content = f.read()
+            tail = content[-4000:] if len(content) > 4000 else content
             
-            scraper.run(brands=brands if brands else None)
-            
-            scraping_status['message'] = 'Scraping tamamlandı! AI tahminleri güncelleniyor...'
-            scraping_status['progress_percent'] = 90
-            broadcast_progress()
-            
-            # AI tahminlerini güncelle
-            from services.ai_model import price_model
-            price_model.update_all_predictions()
-            
-            scraping_status['message'] = f'Tamamlandı! {scraping_status["total_scraped"]} ilan çekildi, {scraping_status["new_listings"]} yeni eklendi.'
-            scraping_status['progress_percent'] = 100
-            broadcast_progress()
-            
-        except Exception as e:
-            scraping_status['errors'].append(str(e))
-            scraping_status['message'] = f'Hata: {e}'
-            broadcast_progress()
-        finally:
-            time.sleep(3)
-            scraping_status['active'] = False
-            scraping_status['progress_percent'] = 0
-            broadcast_progress()
-    
-    thread = threading.Thread(target=run_scraping)
-    thread.start()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Scraping başlatıldı'
-    })
+        return jsonify({
+            'success': True, 
+            'logs': tail,
+            'filename': os.path.basename(latest_file)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 def update_scraping_status(status_update: dict):

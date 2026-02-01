@@ -43,7 +43,8 @@ run_scrape() {
     log "🤖 SCRAPE GÖREVİ BAŞLIYOR"
     log "----------------------------------------"
     
-    python3 -u services/scraper_v2.py
+    # Xvfb ile headful modda çalıştır (Headless tespiti atlatmak için)
+    xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python3 -u services/scraper_v2.py --headful
     
     log "----------------------------------------"
     log "✅ SCRAPE GÖREVİ TAMAMLANDI"

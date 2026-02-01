@@ -135,10 +135,12 @@ SCRAPE_FIELDS = {
     # Konum
     "İl": "il",
     "İlçe": "ilce",
+    "Mahalle": "mahalle",
+    "Ülke": "ulke",
 }
 
 # --- ML MODEL AYARLARI ---
-ML_FEATURES = ["yil", "km", "motor_hacmi", "motor_gucu"]  # Sayısal özellikler
+ML_FEATURES = ["yil", "km", "motor_hacmi", "motor_gucu", "hasar_puani"]  # Sayısal özellikler (hasar puanı dahil)
 ML_CATEGORICAL = ["marka", "model", "yakit", "vites", "kasa_tipi", "renk", "il"]  # Kategorik özellikler
 FIRSAT_THRESHOLD = 0.85  # Tahmin edilen değerin %85'inden düşükse fırsat
 
