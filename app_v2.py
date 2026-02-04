@@ -2,7 +2,8 @@
 # EkerGallery - Modern Flask Uygulaması v2.1
 # ========================================
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response, flash
+from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import sys
 import os
@@ -51,12 +52,21 @@ def broadcast_progress():
 # DEKORATÖRLER
 # ========================================
 
+
 def login_required(f):
-    """Login gerektiren route'lar için dekoratör"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('logged_in'):
             return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('role') != 'admin':
+            return render_template('404.html'), 403
         return f(*args, **kwargs)
     return decorated_function
 
@@ -73,14 +83,51 @@ def login():
         username = request.form.get('username', '')
         password = request.form.get('password', '')
         
+        # 1. Admin Login Attempt
         if username == ADMIN_USER and password == ADMIN_PASS:
             session['logged_in'] = True
             session['username'] = username
+            session['role'] = 'admin'
             return redirect(url_for('dashboard'))
-        else:
-            error = "Geçersiz kullanıcı adı veya şifre"
+        
+        # 2. Db User Login Attempt
+        user = db.get_user(username)
+        if user and check_password_hash(user['password'], password):
+            session['logged_in'] = True
+            session['username'] = username
+            session['role'] = user.get('role', 'user')
+            return redirect(url_for('dashboard'))
+        
+        error = "Geçersiz kullanıcı adı veya şifre"
     
     return render_template('login.html', error=error)
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """Kayıt sayfası"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if not username or not password:
+            return render_template('register.html', error="Tüm alanları doldurun")
+            
+        if password != confirm_password:
+            return render_template('register.html', error="Şifreler eşleşmiyor")
+            
+        if username == ADMIN_USER:
+            return render_template('register.html', error="Bu kullanıcı adı alınamaz")
+
+        # Create user
+        hashed_password = generate_password_hash(password)
+        if db.create_user(username, hashed_password):
+            return redirect(url_for('login'))
+        else:
+            return render_template('register.html', error="Kullanıcı adı zaten kullanımda")
+            
+    return render_template('register.html')
 
 
 @app.route('/logout')
@@ -111,7 +158,8 @@ def dashboard():
         stats=stats,
         categories=categories,
         username=session.get('username', 'Kullanıcı'),
-        scraping_status=scraping_status
+        scraping_status=scraping_status,
+        role=session.get('role', 'user')
     )
 
 
@@ -345,6 +393,7 @@ def progress_stream():
 
 @app.route('/clean-duplicates', methods=['POST'])
 @login_required
+@admin_required
 def clean_duplicates():
     """Mükerrer kayıtları temizle"""
     try:
@@ -362,6 +411,7 @@ def clean_duplicates():
 
 @app.route('/update-ai', methods=['POST'])
 @login_required
+@admin_required
 def update_ai():
     """AI tahminlerini güncelle (Arka Plan İşlemi)"""
     try:
@@ -385,6 +435,7 @@ def update_ai():
 
 @app.route('/start-scraping', methods=['POST'])
 @login_required
+@admin_required
 def start_scraping():
     """Veri çekmeyi başlat (arka planda - cron_runner.sh üzerinden)"""
     try:
@@ -407,6 +458,7 @@ def start_scraping():
 
 @app.route('/admin')
 @login_required
+@admin_required
 def admin_panel():
     return render_template('admin.html', username=session.get('username'))
 
@@ -450,6 +502,7 @@ def update_scraping_status(status_update: dict):
 
 @app.route('/stop-scraping', methods=['POST'])
 @login_required
+@admin_required
 def stop_scraping():
     """Scraping'i durdur"""
     global scraping_status

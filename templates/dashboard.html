@@ -1012,6 +1012,7 @@
             </div>
 
             <!-- Yönetim -->
+            {% if session.get('role') == 'admin' %}
             <div class="menu-section">
                 <div class="menu-section-title">Yönetim</div>
                 <a href="/admin" class="menu-item" style="text-decoration: none;">
@@ -1019,6 +1020,7 @@
                     <span>Admin Paneli</span>
                 </a>
             </div>
+            {% endif %}
         </div>
 
         <div class="sidebar-footer">
@@ -1053,9 +1055,11 @@
                         <i class="fas fa-sync-alt"></i>
                         <span id="progressTitle">İşlem devam ediyor...</span>
                     </div>
+                    {% if session.get('role') == 'admin' %}
                     <button class="btn-stop" onclick="stopScraping()">
                         <i class="fas fa-stop"></i> Durdur
                     </button>
+                    {% endif %}
                 </div>
                 <div class="progress-bar-wrapper">
                     <div class="progress-bar" id="progressBar"></div>
@@ -1162,10 +1166,12 @@
                 <i class="fas fa-database"></i>
                 <h3>Henüz veri yok</h3>
                 <p>Veritabanında araç verisi bulunmuyor. Sahibinden'den veri çekmek için aşağıdaki butona tıklayın.</p>
+                {% if session.get('role') == 'admin' %}
                 <button class="btn-primary" onclick="startScraping()">
                     <i class="fas fa-robot"></i>
                     Veri Çekmeye Başla
                 </button>
+                {% endif %}
             </div>
 
             <!-- Pagination -->
@@ -1307,11 +1313,16 @@
 
         function renderVehicles() {
             const grid = document.getElementById('vehiclesGrid');
-            grid.innerHTML = '';
-
+            
             // Server-side pagination returns only current page data
             const pageData = vehiclesData;
+            
+            if (!pageData || pageData.length === 0) {
+                grid.innerHTML = '';
+                return;
+            }
 
+            let htmlBuffer = '';
             pageData.forEach(v => {
                 // Parse data from baslik or url if fields are empty
                 const parsed = parseVehicleData(v);
@@ -1322,7 +1333,7 @@
                 const farkClass = fark < 0 ? 'positive' : 'negative';
                 const farkPrefix = fark < 0 ? '' : '+';
 
-                const card = `
+                htmlBuffer += `
                     <div class="vehicle-card ${isFirsat ? 'firsat' : ''}">
                         <div class="card-header">
                             <div>
@@ -1393,9 +1404,9 @@
                         </div>
                     </div>
                 `;
-                grid.innerHTML += card;
             });
-
+            
+            grid.innerHTML = htmlBuffer;
             document.getElementById('statShowing').textContent = pageData.length;
         }
 

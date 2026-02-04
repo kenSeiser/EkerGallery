@@ -37,10 +37,39 @@ class Database:
                     connectTimeoutMS=10000
                 )
                 Database._client.admin.command('ping')
-                print("✅ MongoDB bağlantısı başarılı")
+                print("[OK] MongoDB baglantisi basarili")
+                # Indeksleri olustur
+                self._ensure_indexes()
             except Exception as e:
-                print(f"❌ MongoDB bağlantı hatası (ilk istekte tekrar denenecek): {e}")
+                print(f"[HATA] MongoDB baglanti hatasi (ilk istekte tekrar denenecek): {e}")
                 Database._client = None
+
+    def _ensure_indexes(self):
+        """Performans icin gerekli indeksleri olustur"""
+        try:
+            coll = self.vehicles
+            print("[INFO] Indeksler kontrol ediliyor...")
+            
+            # Filtreleme ve siralama icin temel indeksler
+            coll.create_index([("marka", 1)])
+            coll.create_index([("model", 1)])
+            coll.create_index([("fiyat", 1)])
+            coll.create_index([("yil", 1)])
+            coll.create_index([("yakit", 1)])
+            coll.create_index([("vites", 1)])
+            coll.create_index([("ai_firsat", 1)])
+            coll.create_index([("updated_at", -1)])
+            
+            # Bilesik indeksler (Hizli filtreleme icin)
+            coll.create_index([("marka", 1), ("model", 1)])
+            coll.create_index([("marka", 1), ("fiyat", 1)])
+            
+            # URL benzersiz olmali
+            coll.create_index([("url", 1)], unique=True)
+            
+            print("[OK] Veritabani indeksleri hazir")
+        except Exception as e:
+            print(f"[UYARI] Indeks olusturma hatasi: {e}")
 
     def connect(self):
         if self._client is None:
@@ -53,12 +82,12 @@ class Database:
                     connectTimeoutMS=5000
                 )
                 self._client.admin.command('ping')
-                print("✅ MongoDB bağlantısı başarılı (via connect method)")
+                print("[OK] MongoDB baglantisi basarili (via connect method)")
             except ConnectionFailure as e:
-                print(f"❌ MongoDB bağlantı hatası: {e}")
+                print(f"[HATA] MongoDB baglanti hatasi: {e}")
                 raise
             except Exception as e:
-                print(f"❌ MongoDB Başlatma Hatası: {e}")
+                print(f"[HATA] MongoDB Baslatma Hatasi: {e}")
                 raise
         return self._client
 
@@ -140,7 +169,7 @@ class Database:
         ]
         if operations:
             result = self.vehicles.bulk_write(operations)
-            print(f"✅ {result.modified_count} araç için AI tahmini güncellendi")
+            print(f"[OK] {result.modified_count} arac icin AI tahmini guncellendi")
 
     def get_stats(self, filters: dict = None) -> dict:
         query = filters or {}
@@ -191,21 +220,43 @@ class Database:
             if ids_to_remove:
                 result = self.vehicles.delete_many({"_id": {"$in": ids_to_remove}})
                 removed += result.deleted_count
-        print(f"🧹 {removed} mükerrer kayıt silindi")
+        print(f"[TEMIZLIK] {removed} mukerrer kayit silindi")
         return removed
 
     def remove_old_listings(self, days: int = 30) -> int:
         from datetime import timedelta
         cutoff = datetime.utcnow() - timedelta(days=days)
         result = self.vehicles.delete_many({"updated_at": {"$lt": cutoff}})
-        print(f"🧹 {result.deleted_count} eski ilan silindi ({days} günden eski)")
+        print(f"[TEMIZLIK] {result.deleted_count} eski ilan silindi ({days} gunden eski)")
         return result.deleted_count
+
+    @property
+    def users(self):
+        return self.db['users']
+
+    def create_user(self, username, password_hash, role='user'):
+        """Yeni kullanıcısı oluştur"""
+        if self.get_user(username):
+            return False
+        
+        user_data = {
+            "username": username,
+            "password": password_hash,
+            "role": role,
+            "created_at": datetime.utcnow()
+        }
+        self.users.insert_one(user_data)
+        return True
+
+    def get_user(self, username):
+        """Kullanıcıyı getir"""
+        return self.users.find_one({"username": username})
 
     def close(self):
         if self._client:
             self._client.close()
             self._client = None
-            print("🔌 MongoDB bağlantısı kapatıldı")
+            print("[KAPAT] MongoDB baglantisi kapatildi")
 
 
 db = Database()
