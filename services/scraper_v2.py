@@ -59,13 +59,14 @@ def get_db_connection():
 
 def init_driver():
     """Chrome driver başlat"""
-    options = uc.ChromeOptions()
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--window-size=1920,1080')
-    options.add_argument('--disable-blink-features=AutomationControlled')
-    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    # User-Agent Rotation
+    user_agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    ]
+    options.add_argument(f'--user-agent={random.choice(user_agents)}')
     options.add_argument('--lang=tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7')
     
     try:
@@ -89,6 +90,53 @@ def init_driver():
 def random_sleep(min_s=2, max_s=5):
     """Rastgele bekleme"""
     time.sleep(random.uniform(min_s, max_s))
+
+
+def wait_for_manual_intervention(driver):
+    """
+    Bot kontrolü veya giriş ekranı algılandığında sonsuz döngüde bekler.
+    Kullanıcı engeli kaldırdığında otomatik devam eder.
+    """
+    check_interval = 2
+    while True:
+        try:
+            page_source = driver.page_source
+            current_url = driver.current_url
+            
+            # Daha spesifik öğe kontrolleri
+            is_bot = any(x in page_source for x in ["Olağandışı", "Olağan dışı", "robot", "captcha"])
+            is_login = any(x in current_url for x in ["UyeGiris", "giris-yap", "secure.sahibinden.com/giris"])
+            
+            # Eğer ilan tablosu veya detay kutusu gelmişse engel kalkmış demektir
+            has_results = len(driver.find_elements(By.CSS_SELECTOR, "tr.searchResultsItem, .classifiedDetail")) > 0
+            
+            if not is_bot and not is_login:
+                break
+            
+            if has_results: # İçerik geldiyse uyarıyı geç
+                break
+                
+            if is_bot:
+                logger.warning("!!! BOT KONTROLU (CAPTCHA) ALGILANDI !!! Lütfen tarayıcıda işlemi tamamlayın. Scraper bekliyor...")
+            elif is_login:
+                logger.warning("!!! GIRIS EKRANI ALGILANDI !!! Lütfen giriş yapın. Scraper bekliyor...")
+                
+            time.sleep(check_interval)
+        except Exception as e:
+            logger.error(f"Waiting error: {e}")
+            break
+
+
+def random_scroll(driver):
+    """Gerçek kullanıcı gibi rastgele scroll yapar"""
+    try:
+        total_height = driver.execute_script("return document.body.scrollHeight")
+        scroll_to = random.randint(100, min(800, total_height))
+        driver.execute_script(f"window.scrollTo({{top: {scroll_to}, behavior: 'smooth'}});")
+        time.sleep(random.uniform(1, 2))
+        driver.execute_script(f"window.scrollTo({{top: 0, behavior: 'smooth'}});")
+    except:
+        pass
 
 
 def parse_price(text):
@@ -131,6 +179,8 @@ def get_detail_info(driver, url):
     
     try:
         driver.get(url)
+        wait_for_manual_intervention(driver)
+        random_scroll(driver)
         random_sleep(2, 4)
         
         # Bilgi tablosunu bul
@@ -186,13 +236,9 @@ def scrape_listing_page(driver, url):
     
     try:
         driver.get(url)
+        wait_for_manual_intervention(driver)
+        random_scroll(driver)
         random_sleep(3, 5)
-        
-        # Bot kontrolü
-        if "Olağandışı" in driver.page_source or "Olağan dışı" in driver.page_source:
-            logger.warning("Bot detection triggered!")
-            random_sleep(10, 20)
-            return []
         
         # İlanları bekle
         try:
