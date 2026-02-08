@@ -23,6 +23,9 @@ CHROME_VERSION = 144
 SCRAPE_INTERVAL_HOURS = 4  # Kaç saatte bir veri çekilecek
 MAX_PAGES_PER_CATEGORY = 10  # Kategori başına maksimum sayfa
 
+# Scraper'ın ATLAMASI gereken modeller (verisi zaten çekilmiş)
+SKIP_MODELS = ["model-y", "model-3"]
+
 # --- ARAÇ KATEGORİLERİ ---
 # Sahibinden URL yapısı ve kategori tanımları
 VEHICLE_CATEGORIES = {
@@ -30,6 +33,8 @@ VEHICLE_CATEGORIES = {
     "tesla": {
         "display_name": "Tesla",
         "models": {
+            "model-y": {"url": "https://www.sahibinden.com/tesla-model-y?sorting=date_desc", "name": "Model Y"},
+            "model-3": {"url": "https://www.sahibinden.com/tesla-model-3?sorting=date_desc", "name": "Model 3"},
             "model-s": {"url": "https://www.sahibinden.com/tesla-model-s?sorting=date_desc", "name": "Model S"},
         }
     },

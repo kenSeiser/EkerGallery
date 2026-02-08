@@ -24,13 +24,14 @@ import requests
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
-    from config import MONGO_URI, DB_NAME, COLLECTION_NAME, VEHICLE_CATEGORIES, MAX_PAGES_PER_CATEGORY
+    from config import MONGO_URI, DB_NAME, COLLECTION_NAME, VEHICLE_CATEGORIES, MAX_PAGES_PER_CATEGORY, SKIP_MODELS
 except ImportError:
     MONGO_URI = "mongodb://localhost:27017/"
     DB_NAME = "sahibinden_data"
     COLLECTION_NAME = "tum_araclar"
     VEHICLE_CATEGORIES = {}
     MAX_PAGES_PER_CATEGORY = 10
+    SKIP_MODELS = []
 
 # Configure logging
 os.makedirs("logs", exist_ok=True)
@@ -444,6 +445,10 @@ def main():
         total = 0
         for brand_key, brand_data in VEHICLE_CATEGORIES.items():
             for model_key, model_info in brand_data.get('models', {}).items():
+                # Atlanacak modelleri kontrol et
+                if model_key in SKIP_MODELS:
+                    logger.info(f"ATLANIYOR: {brand_key}/{model_key} (SKIP_MODELS listesinde)")
+                    continue
                 saved = scrape_category(driver, db, brand_key, model_key, model_info)
                 total += saved
                 random_sleep(5, 10)
