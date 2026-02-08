@@ -168,18 +168,18 @@ def api_vehicles():
             # Search by marka+model OR category containing both
             category_pattern = f".*{brand}.*{model}.*"
             filters['$or'] = [
-                {'marka': brand, 'model': model},
+                {'marka': {'$regex': f'^{brand}$', '$options': 'i'}, 'model': {'$regex': f'.*{model}.*', '$options': 'i'}},
                 {'category': {'$regex': category_pattern, '$options': 'i'}}
             ]
         elif brand:
             # Search by marka OR category containing brand
             filters['$or'] = [
-                {'marka': brand},
+                {'marka': {'$regex': f'^{brand}$', '$options': 'i'}},
                 {'category': {'$regex': f".*{brand}.*", '$options': 'i'}}
             ]
         elif model:
             filters['$or'] = [
-                {'model': model},
+                {'model': {'$regex': f'.*{model}.*', '$options': 'i'}},
                 {'category': {'$regex': f".*{model}.*", '$options': 'i'}}
             ]
             
