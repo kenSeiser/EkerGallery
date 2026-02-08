@@ -1181,8 +1181,8 @@
 
     <!-- Scripts -->
     <script>
-        // Kategori verileri
-        const categories = {{ categories | tojson | safe }};
+        // Kategori verileri (Jinja2'den aktarılıyor)
+        var categories = {{ categories | tojson | safe }};
 
         let vehiclesData = [];
         let currentPage = 1;
@@ -1346,6 +1346,13 @@
                                     </span>
                                 </div>
                             </div>
+                            ` : (parsed.hasar_puani === 0 || parsed.boya_degisen === 'Değişen yok' || parsed.boya_degisen === 'Boyasız') ? `
+                            <div class="damage-info" style="background: rgba(63, 185, 80, 0.1); border-radius: 8px; padding: 10px; margin-bottom: 12px; border-left: 3px solid #238636;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 11px; color: #8b949e;">Hasar Durumu</span>
+                                    <span style="font-weight: 600; font-size: 12px; color: #238636;">Temiz</span>
+                                </div>
+                            </div>
                             ` : parsed.hasar_puani > 0 ? `
                             <div class="damage-info" style="background: ${parsed.hasar_puani > 50 ? 'rgba(248, 81, 73, 0.1)' : 'rgba(255, 193, 7, 0.1)'}; border-radius: 8px; padding: 10px; margin-bottom: 12px; border-left: 3px solid ${parsed.hasar_puani > 50 ? '#f85149' : '#ffc107'};">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -1408,10 +1415,10 @@
             }
             marka = marka || 'Bilinmiyor';
 
-            // === MODEL ===
-            let model = v.model || '';
+            // === MODEL (Smarter title-based naming) ===
+            let model = v.baslik || v.title || v.model || '';
             if (!model && category) model = category.split(' ').slice(1).join(' ');
-            if (!model && title) model = title.substring(0, 45) + (title.length > 45 ? '...' : '');
+            if (model.length > 50) model = model.substring(0, 48) + '...';
             model = model || 'Model Yok';
 
             // === YIL ===
@@ -1602,12 +1609,25 @@
         }
 
         function filterByModel(brand, model) {
-            document.getElementById('filterBrand').value = brand;
+            // Marka display_name ile select değerini eşleştir
+            const brandSelect = document.getElementById('filterBrand');
+            let foundBrand = '';
+
+            // Mevcut select opsiyonları içinde ara
+            for (let i = 0; i < brandSelect.options.length; i++) {
+                if (brandSelect.options[i].text === brand || brandSelect.options[i].value === brand) {
+                    foundBrand = brandSelect.options[i].value;
+                    break;
+                }
+            }
+
+            brandSelect.value = foundBrand || brand;
             loadModels();
+
             setTimeout(() => {
                 document.getElementById('filterModel').value = model;
                 applyFilters();
-            }, 100);
+            }, 150);
         }
 
         function loadAllVehicles() {

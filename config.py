@@ -30,7 +30,6 @@ VEHICLE_CATEGORIES = {
     "tesla": {
         "display_name": "Tesla",
         "models": {
-            "model-3": {"url": "https://www.sahibinden.com/tesla-model-3?sorting=date_desc", "name": "Model 3"},
             "model-s": {"url": "https://www.sahibinden.com/tesla-model-s?sorting=date_desc", "name": "Model S"},
         }
     },

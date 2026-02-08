@@ -101,37 +101,46 @@ def random_sleep(min_s=2, max_s=5):
 
 def wait_for_manual_intervention(driver):
     """
-    Bot kontrolü veya giriş ekranı algılandığında sonsuz döngüde bekler.
-    Kullanıcı engeli kaldırdığında otomatik devam eder.
+    Bot kontrolü veya giriş ekranı algılandığında bekler.
+    Kullanıcı engeli kaldırıp Enter'a bastığında devam eder.
     """
     check_interval = 2
+    need_intervention = False
+    
     while True:
         try:
             page_source = driver.page_source
             current_url = driver.current_url
             
-            # Daha spesifik öğe kontrolleri
+            # Bot veya giriş kontrolü
             is_bot = any(x in page_source for x in ["Olağandışı", "Olağan dışı", "robot", "captcha"])
             is_login = any(x in current_url for x in ["UyeGiris", "giris-yap", "secure.sahibinden.com/giris"])
             
-            # Eğer ilan tablosu veya detay kutusu gelmişse engel kalkmış demektir
+            # İçerik geldiyse engel yok
             has_results = len(driver.find_elements(By.CSS_SELECTOR, "tr.searchResultsItem, .classifiedDetail")) > 0
             
             if not is_bot and not is_login:
                 break
             
-            if has_results: # İçerik geldiyse uyarıyı geç
+            if has_results:
                 break
-                
+            
+            need_intervention = True
             if is_bot:
-                logger.warning("!!! BOT KONTROLU (CAPTCHA) ALGILANDI !!! Lütfen tarayıcıda işlemi tamamlayın. Scraper bekliyor...")
+                logger.warning("!!! BOT KONTROLU !!! Tarayıcıda çözün, sonra CMD'ye gelip ENTER basın...")
             elif is_login:
-                logger.warning("!!! GIRIS EKRANI ALGILANDI !!! Lütfen giriş yapın. Scraper bekliyor...")
+                logger.warning("!!! GIRIS EKRANI !!! Giriş yapın, sonra CMD'ye gelip ENTER basın...")
                 
             time.sleep(check_interval)
         except Exception as e:
             logger.error(f"Waiting error: {e}")
             break
+    
+    # Sadece müdahale gerekliyse Enter bekle
+    if need_intervention:
+        print("\n" + "="*50)
+        input(">>> İşlem tamamlandı mı? ENTER'a basın...")
+        print("="*50 + "\n")
 
 
 def random_scroll(driver):
