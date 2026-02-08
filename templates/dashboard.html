@@ -1002,7 +1002,7 @@
                 <div class="submenu">
                     {% for model_key, model_info in brand_info.models.items() %}
                     <div class="submenu-item"
-                        onclick="event.stopPropagation(); filterByModel('{{ brand_info.display_name }}', '{{ model_info.name }}')">
+                        onclick="event.stopPropagation(); filterByModel('{{ brand_key }}', '{{ model_key }}')">
                         <i class="fas fa-angle-right"></i>
                         <span>{{ model_info.name }}</span>
                     </div>
@@ -1110,7 +1110,7 @@
                 <select id="filterBrand" class="filter-select" onchange="loadModels()">
                     <option value="">Tüm Markalar</option>
                     {% for brand_key, brand_info in categories.items() %}
-                    <option value="{{ brand_info.display_name }}">{{ brand_info.display_name }}</option>
+                    <option value="{{ brand_key }}">{{ brand_info.display_name }}</option>
                     {% endfor %}
                 </select>
 
@@ -1570,21 +1570,15 @@
         // ========== FILTERS ==========
         function loadModels() {
             const brand = document.getElementById('filterBrand').value;
-            const modelSelect = document.getElementById('filterModel').value;
             const modelSelectElem = document.getElementById('filterModel');
             modelSelectElem.innerHTML = '<option value="">Tüm Modeller</option>';
 
-            if (brand) {
-                for (const [key, info] of Object.entries(categories)) {
-                    if (info.display_name === brand) {
-                        for (const [modelKey, modelInfo] of Object.entries(info.models)) {
-                            const option = document.createElement('option');
-                            option.value = modelInfo.name;
-                            option.textContent = modelInfo.name;
-                            modelSelectElem.appendChild(option);
-                        }
-                        break;
-                    }
+            if (brand && categories[brand]) {
+                for (const [modelKey, modelInfo] of Object.entries(categories[brand].models)) {
+                    const option = document.createElement('option');
+                    option.value = modelKey;  // model-3, model-s gibi key kullan
+                    option.textContent = modelInfo.name;  // Model 3, Model S gibi display name göster
+                    modelSelectElem.appendChild(option);
                 }
             }
         }
@@ -1609,19 +1603,8 @@
         }
 
         function filterByModel(brand, model) {
-            // Marka display_name ile select değerini eşleştir
-            const brandSelect = document.getElementById('filterBrand');
-            let foundBrand = '';
-
-            // Mevcut select opsiyonları içinde ara
-            for (let i = 0; i < brandSelect.options.length; i++) {
-                if (brandSelect.options[i].text === brand || brandSelect.options[i].value === brand) {
-                    foundBrand = brandSelect.options[i].value;
-                    break;
-                }
-            }
-
-            brandSelect.value = foundBrand || brand;
+            // brand ve model artık key değerleri (tesla, model-3 gibi)
+            document.getElementById('filterBrand').value = brand;
             loadModels();
 
             setTimeout(() => {
