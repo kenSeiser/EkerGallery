@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EkerGallery - CarScout Dashboard</title>
+    <meta name="description" content="Premium araç analiz platformu - AI destekli fiyat tahmini ve fırsat tespiti">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Wyscout-inspired Dark Theme */
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: #21262d;
+            --bg-card-hover: #30363d;
+            --border-color: rgba(48, 54, 61, 0.5);
+            --border-highlight: rgba(88, 166, 255, 0.3);
+
+            /* Text Colors */
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+
+            /* Accent Colors - Wyscout Style */
+            --accent-primary: #58a6ff;
+            --accent-secondary: #a371f7;
+            --accent-success: #3fb950;
+            --accent-danger: #f85149;
+            --accent-warning: #d29922;
+            --accent-info: #39d4dc;
+
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, #58a6ff 0%, #a371f7 100%);
+            --gradient-success: linear-gradient(135deg, #3fb950 0%, #238636 100%);
+            --gradient-card: linear-gradient(145deg, #21262d 0%, #161b22 100%);
+
+            /* Layout */
+            --sidebar-width: 280px;
+            --header-height: 64px;
+            --card-radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* ========== SIDEBAR - Wyscout Style ========== */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--gradient-primary);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: white;
+        }
+
+        .logo-text span {
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 12px;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .menu-section {
+            margin-bottom: 24px;
+        }
+
+        .menu-section-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 8px 12px;
+            margin-bottom: 4px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .menu-item:hover {
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .menu-item.active {
+            background: rgba(88, 166, 255, 0.15);
+            color: var(--accent-primary);
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .menu-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .menu-badge {
+            margin-left: auto;
+            background: var(--gradient-success);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* Dropdown Menu */
+        .menu-dropdown {
+            cursor: pointer;
+        }
+
+        .menu-dropdown .dropdown-icon {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+            font-size: 10px;
+        }
+
+        .menu-dropdown.open .dropdown-icon {
+            transform: rotate(180deg);
+        }
+
+        .submenu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding-left: 20px;
+        }
+
+        .submenu.open {
+            max-height: 500px;
+        }
+
+        .submenu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            color: var(--text-muted);
+            font-size: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .submenu-item:hover {
+            background: rgba(88, 166, 255, 0.08);
+            color: var(--text-secondary);
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-logout {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            border-radius: 8px;
+            color: var(--accent-danger);
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-logout:hover {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        /* ========== MAIN CONTENT ========== */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            height: var(--header-height);
+            background: rgba(13, 17, 23, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-title span {
+            color: var(--accent-primary);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+            border-radius: 20px;
+            color: var(--accent-success);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        /* ========== PROGRESS BAR ========== */
+        .progress-container {
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .progress-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-primary);
+        }
+
+        .progress-title i {
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .progress-bar-wrapper {
+            height: 6px;
+            background: rgba(88, 166, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .btn-stop {
+            padding: 8px 16px;
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            border-radius: 6px;
+            color: var(--accent-danger);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-stop:hover {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        /* ========== STATS GRID - Wyscout Style ========== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-highlight);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .stat-icon.primary {
+            background: rgba(88, 166, 255, 0.15);
+            color: var(--accent-primary);
+        }
+
+        .stat-icon.success {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--accent-success);
+        }
+
+        .stat-icon.warning {
+            background: rgba(210, 153, 34, 0.15);
+            color: var(--accent-warning);
+        }
+
+        .stat-icon.info {
+            background: rgba(57, 212, 220, 0.15);
+            color: var(--accent-info);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        /* ========== FILTERS - Compact Style ========== */
+        .filters-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-select,
+        .filter-input {
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            min-width: 140px;
+        }
+
+        .filter-select:focus,
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .filter-select option {
+            background: var(--bg-secondary);
+        }
+
+        .btn-filter {
+            padding: 10px 20px;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-filter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(88, 166, 255, 0.3);
+        }
+
+        .btn-reset {
+            padding: 10px 16px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-reset:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        /* ========== VEHICLE CARDS GRID - Wyscout Style ========== */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--accent-primary);
+        }
+
+        .section-count {
+            font-weight: 400;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:hover {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-action.success {
+            background: rgba(63, 185, 80, 0.1);
+            border-color: rgba(63, 185, 80, 0.3);
+            color: var(--accent-success);
+        }
+
+        .btn-action.success:hover {
+            background: var(--accent-success);
+            color: white;
+        }
+
+        /* Vehicle Cards Grid */
+        .vehicles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .vehicle-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .vehicle-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-highlight);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .vehicle-card.firsat {
+            border-color: rgba(63, 185, 80, 0.4);
+        }
+
+        .vehicle-card.firsat::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-success);
+        }
+
+        .card-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .card-brand {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .card-model {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+
+        .card-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-firsat {
+            background: var(--gradient-success);
+            color: white;
+        }
+
+        .badge-normal {
+            background: rgba(139, 148, 158, 0.15);
+            color: var(--text-muted);
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        .card-specs {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .spec-item {
+            text-align: center;
+        }
+
+        .spec-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .spec-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .card-price {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .price-main {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .price-ai {
+            text-align: right;
+        }
+
+        .price-ai-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .price-ai-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-info);
+        }
+
+        .price-diff {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .price-diff.positive {
+            color: var(--accent-success);
+        }
+
+        .price-diff.negative {
+            color: var(--accent-danger);
+        }
+
+        .card-footer {
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .btn-view {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: var(--accent-primary);
+            border-radius: 6px;
+            color: white;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .btn-view:hover {
+            background: #4090e0;
+            transform: scale(1.05);
+        }
+
+        /* ========== EMPTY STATE ========== */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state p {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(88, 166, 255, 0.4);
+        }
+
+        /* ========== PAGINATION ========== */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+        }
+
+        .page-btn {
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .page-btn:hover,
+        .page-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-bar {
+                flex-direction: column;
+            }
+
+            .filter-select,
+            .filter-input {
+                width: 100%;
+            }
+
+            .vehicles-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-specs {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* ========== TOAST NOTIFICATION ========== */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-car"></i>
+                </div>
+                <div class="logo-text">EKER<span>GALLERY</span></div>
+            </div>
+        </div>
+
+        <div class="sidebar-content">
+            <!-- Genel -->
+            <div class="menu-section">
+                <div class="menu-section-title">Dashboard</div>
+                <div class="menu-item active" onclick="loadAllVehicles()">
+                    <i class="fas fa-th-large"></i>
+                    <span>Tüm Araçlar</span>
+                </div>
+                <div class="menu-item" onclick="loadFirsatlar()">
+                    <i class="fas fa-bolt"></i>
+                    <span>AI Fırsatları</span>
+                    <span class="menu-badge" id="firsatCount">0</span>
+                </div>
+            </div>
+
+            <!-- Markalar -->
+            <div class="menu-section">
+                <div class="menu-section-title">Markalar</div>
+                {% for brand_key, brand_info in categories.items() %}
+                <div class="menu-dropdown" onclick="toggleSubmenu(this)">
+                    <div class="menu-item">
+                        <i class="fas fa-car-side"></i>
+                        <span>{{ brand_info.display_name }}</span>
+                        <i class="fas fa-chevron-down dropdown-icon"></i>
+                    </div>
+                </div>
+                <div class="submenu">
+                    {% for model_key, model_info in brand_info.models.items() %}
+                    <div class="submenu-item"
+                        onclick="event.stopPropagation(); filterByModel('{{ brand_info.display_name }}', '{{ model_info.name }}')">
+                        <i class="fas fa-angle-right"></i>
+                        <span>{{ model_info.name }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Yönetim -->
+            {% if session.get('role') == 'admin' %}
+            <div class="menu-section">
+                <div class="menu-section-title">Yönetim</div>
+                <a href="/admin" class="menu-item" style="text-decoration: none;">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Admin Paneli</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="sidebar-footer">
+            <a href="/logout" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Çıkış Yap</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="header-title">Hoşgeldin, <span>{{ username }}</span></h1>
+            </div>
+            <div class="header-right">
+                <div class="live-indicator">
+                    <div class="live-dot"></div>
+                    <span>Canlı Veri</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Progress Bar -->
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-header">
+                    <div class="progress-title">
+                        <i class="fas fa-sync-alt"></i>
+                        <span id="progressTitle">İşlem devam ediyor...</span>
+                    </div>
+                    {% if session.get('role') == 'admin' %}
+                    <button class="btn-stop" onclick="stopScraping()">
+                        <i class="fas fa-stop"></i> Durdur
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="progress-info">
+                    <span id="progressMessage">Başlatılıyor...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-car"></i>
+                    </div>
+                    <div class="stat-label">Toplam Araç</div>
+                    <div class="stat-value" id="statTotal">{{ stats.total }}</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="stat-label">AI Fırsatları</div>
+                    <div class="stat-value" id="statFirsatlar">{{ stats.firsatlar }}</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-tag"></i>
+                    </div>
+                    <div class="stat-label">Ortalama Fiyat</div>
+                    <div class="stat-value" id="statAvgPrice">{{ "{:,}".format(stats.avg_price) }} ₺</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon info">
+                        <i class="fas fa-filter"></i>
+                    </div>
+                    <div class="stat-label">Gösterilen</div>
+                    <div class="stat-value" id="statShowing">0</div>
+                </div>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="filters-bar">
+                <select id="filterBrand" class="filter-select" onchange="loadModels()">
+                    <option value="">Tüm Markalar</option>
+                    {% for brand_key, brand_info in categories.items() %}
+                    <option value="{{ brand_info.display_name }}">{{ brand_info.display_name }}</option>
+                    {% endfor %}
+                </select>
+
+                <select id="filterModel" class="filter-select">
+                    <option value="">Tüm Modeller</option>
+                </select>
+
+                <input type="number" id="filterMinPrice" class="filter-input" placeholder="Min Fiyat">
+                <input type="number" id="filterMaxPrice" class="filter-input" placeholder="Max Fiyat">
+
+                <select id="filterYear" class="filter-select">
+                    <option value="">Tüm Yıllar</option>
+                    <script>
+                        const currentYear = new Date().getFullYear();
+                        for (let y = currentYear; y >= 2000; y--) {
+                            document.write(`<option value="${y}">${y}</option>`);
+                        }
+                    </script>
+                </select>
+
+                <button class="btn-filter" onclick="applyFilters()">
+                    <i class="fas fa-search"></i> Filtrele
+                </button>
+                <button class="btn-reset" onclick="resetFilters()">
+                    <i class="fas fa-times"></i> Sıfırla
+                </button>
+            </div>
+
+            <!-- Vehicles Section -->
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-list"></i>
+                    <span>Araç Listesi</span>
+                    <span class="section-count" id="vehicleCount">(0 araç)</span>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-action" onclick="exportData()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn-action" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i> Yenile
+                    </button>
+                </div>
+            </div>
+
+            <!-- Vehicles Grid -->
+            <div class="vehicles-grid" id="vehiclesGrid">
+                <!-- Cards will be rendered here -->
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <i class="fas fa-database"></i>
+                <h3>Henüz veri yok</h3>
+                <p>Veritabanında araç verisi bulunmuyor. Sahibinden'den veri çekmek için aşağıdaki butona tıklayın.</p>
+                {% if session.get('role') == 'admin' %}
+                <button class="btn-primary" onclick="startScraping()">
+                    <i class="fas fa-robot"></i>
+                    Veri Çekmeye Başla
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        // Kategori verileri
+        const categories = {{ categories | tojson | safe }};
+
+        let vehiclesData = [];
+        let currentPage = 1;
+        const itemsPerPage = 20;
+        let eventSource = null;
+
+        // Brand lookup cache for fast parsing
+        const BRANDS_LOOKUP = {
+            'volkswagen': 'Volkswagen', 'vw': 'Volkswagen',
+            'mercedes': 'Mercedes', 'bmw': 'BMW',
+            'tesla': 'Tesla', 'volvo': 'Volvo',
+            'opel': 'Opel', 'fiat': 'Fiat',
+            'renault': 'Renault', 'toyota': 'Toyota',
+            'honda': 'Honda', 'audi': 'Audi',
+            'porsche': 'Porsche', 'ford': 'Ford',
+            'hyundai': 'Hyundai', 'kia': 'Kia'
+        };
+
+        // ========== INIT ==========
+        document.addEventListener('DOMContentLoaded', function () {
+            loadVehicles();
+            updateFirsatCount();
+        });
+
+
+
+        // ========== DATA LOADING ==========
+        async function loadVehicles(params = null) {
+            try {
+                showLoading();
+
+                // If params not provided, get from UI filters
+                if (!params) {
+                    params = getFilterParams();
+                }
+
+                // Add pagination params
+                params.page = currentPage;
+                params.limit = itemsPerPage;
+
+                const queryParams = new URLSearchParams(params).toString();
+                const response = await fetch(`/api/vehicles?${queryParams}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    vehiclesData = result.data;
+                    // API returns count, total_pages
+                    const totalCount = result.count || 0;
+                    const pages = result.total_pages || 1;
+
+                    renderVehicles();
+                    renderPagination(pages);
+                    updateVehicleCount(totalCount);
+
+                    if (totalCount === 0) {
+                        document.getElementById('emptyState').style.display = 'block';
+                        document.getElementById('vehiclesGrid').style.display = 'none';
+                        document.getElementById('pagination').style.display = 'none';
+                    } else {
+                        document.getElementById('emptyState').style.display = 'none';
+                        document.getElementById('vehiclesGrid').style.display = 'grid';
+                        document.getElementById('pagination').style.display = 'flex';
+                    }
+                }
+            } catch (error) {
+                console.error('Veri yükleme hatası:', error);
+            }
+        }
+
+        function showLoading() {
+            const grid = document.getElementById('vehiclesGrid');
+            let html = '';
+            // Generate 6 skeleton cards efficiently
+            const skeletonCard = `
+                <div class="vehicle-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="skeleton" style="width: 80px; height: 12px; margin-bottom: 8px;"></div>
+                            <div class="skeleton" style="width: 150px; height: 18px;"></div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="skeleton" style="width: 100%; height: 60px; margin-bottom: 16px;"></div>
+                        <div class="skeleton" style="width: 100%; height: 40px;"></div>
+                    </div>
+                </div>`;
+
+            for (let i = 0; i < 6; i++) {
+                html += skeletonCard;
+            }
+            grid.innerHTML = html;
+        }
+
+        function renderVehicles() {
+            const grid = document.getElementById('vehiclesGrid');
+
+            // Server-side pagination returns only current page data
+            const pageData = vehiclesData;
+
+            if (!pageData || pageData.length === 0) {
+                grid.innerHTML = '';
+                return;
+            }
+
+            let htmlBuffer = '';
+            pageData.forEach(v => {
+                // Parse data from baslik or url if fields are empty
+                const parsed = parseVehicleData(v);
+
+                const isFirsat = parsed.ai_firsat;
+                const fark = parsed.fark || 0;
+
+                const farkClass = fark < 0 ? 'positive' : 'negative';
+                const farkPrefix = fark < 0 ? '' : '+';
+
+                htmlBuffer += `
+                    <div class="vehicle-card ${isFirsat ? 'firsat' : ''}">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-brand">${parsed.marka}</div>
+                                <div class="card-model">${parsed.model}</div>
+                            </div>
+                            <span class="card-badge ${isFirsat ? 'badge-firsat' : 'badge-normal'}">
+                                ${isFirsat ? '<i class="fas fa-bolt"></i> Fırsat' : 'Normal'}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-specs">
+                                <div class="spec-item">
+                                    <div class="spec-value">${parsed.yil}</div>
+                                    <div class="spec-label">Yıl</div>
+                                </div>
+                                <div class="spec-item">
+                                    <div class="spec-value">${parsed.km}</div>
+                                    <div class="spec-label">KM</div>
+                                </div>
+                                <div class="spec-item">
+                                    <div class="spec-value">${parsed.yakit}</div>
+                                    <div class="spec-label">Yakıt</div>
+                                </div>
+                                <div class="spec-item">
+                                    <div class="spec-value">${parsed.vites}</div>
+                                    <div class="spec-label">Vites</div>
+                                </div>
+                            </div>
+                            ${(parsed.boya_degisen && parsed.boya_degisen !== 'Belirtilmemiş') ? `
+                            <div class="damage-info" style="background: ${parsed.boya_degisen.includes('Ağır') || parsed.boya_degisen.includes('Pert') ? 'rgba(248, 81, 73, 0.1)' :
+                            parsed.boya_degisen.includes('Hasar Kayıtlı') ? 'rgba(255, 193, 7, 0.1)' :
+                                'rgba(63, 185, 80, 0.1)'
+                        }; border-radius: 8px; padding: 10px; margin-bottom: 12px; border-left: 3px solid ${parsed.boya_degisen.includes('Ağır') || parsed.boya_degisen.includes('Pert') ? '#f85149' :
+                            parsed.boya_degisen.includes('Hasar Kayıtlı') ? '#ffc107' :
+                                '#238636'
+                        };">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 11px; color: #8b949e;">Hasar Durumu</span>
+                                    <span style="font-weight: 600; font-size: 12px; color: ${parsed.boya_degisen.includes('Ağır') || parsed.boya_degisen.includes('Pert') ? '#f85149' :
+                            parsed.boya_degisen.includes('Hasar Kayıtlı') ? '#ffc107' :
+                                '#238636'
+                        };">
+                                        ${parsed.boya_degisen}
+                                    </span>
+                                </div>
+                            </div>
+                            ` : parsed.hasar_puani > 0 ? `
+                            <div class="damage-info" style="background: ${parsed.hasar_puani > 50 ? 'rgba(248, 81, 73, 0.1)' : 'rgba(255, 193, 7, 0.1)'}; border-radius: 8px; padding: 10px; margin-bottom: 12px; border-left: 3px solid ${parsed.hasar_puani > 50 ? '#f85149' : '#ffc107'};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span style="font-size: 11px; color: #8b949e;">Hasar Puanı</span>
+                                    <span style="font-weight: 600; font-size: 12px; color: ${parsed.hasar_puani > 50 ? '#f85149' : '#ffc107'};">
+                                        ${parsed.hasar_puani}/100
+                                    </span>
+                                </div>
+                            </div>
+                            ` : `
+                            <div class="damage-info" style="background: rgba(139, 148, 158, 0.1); border-radius: 8px; padding: 10px; margin-bottom: 12px; border-left: 3px solid #8b949e;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 11px; color: #8b949e;">Hasar Durumu</span>
+                                    <span style="font-weight: 600; font-size: 12px; color: #8b949e;">Belirtilmemiş</span>
+                                </div>
+                            </div>
+                            `}
+                            <div class="card-price">
+                                <div class="price-main">${parsed.fiyat}</div>
+                                <div class="price-ai">
+                                    <div class="price-ai-label">AI Tahmini</div>
+                                    <div class="price-ai-value">${parsed.ai_tahmin}</div>
+                                    ${fark !== 0 ? `<div class="price-diff ${farkClass}">${farkPrefix}${formatPrice(fark)} ₺</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="card-meta">
+                                <i class="fas fa-map-marker-alt"></i> ${parsed.konum}
+                            </div>
+                            <a href="${v.url}" target="_blank" class="btn-view">
+                                <i class="fas fa-external-link-alt"></i> İlana Git
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = htmlBuffer;
+            document.getElementById('statShowing').textContent = pageData.length;
+        }
+
+        // Optimized parseVehicleData - uses cached BRANDS_LOOKUP
+        function parseVehicleData(v) {
+            const title = v.title || v.baslik || '';
+            const category = v.category || '';
+            const details = v.details || {};
+
+            // === MARKA (fast path) ===
+            let marka = v.marka || '';
+            if (!marka && category) {
+                const catFirst = category.split(' ')[0].toLowerCase();
+                marka = BRANDS_LOOKUP[catFirst] || category.split(' ')[0] || '';
+            }
+            if (!marka && title) {
+                const titleLower = title.toLowerCase();
+                for (const [key, val] of Object.entries(BRANDS_LOOKUP)) {
+                    if (titleLower.includes(key)) { marka = val; break; }
+                }
+            }
+            marka = marka || 'Bilinmiyor';
+
+            // === MODEL ===
+            let model = v.model || '';
+            if (!model && category) model = category.split(' ').slice(1).join(' ');
+            if (!model && title) model = title.substring(0, 45) + (title.length > 45 ? '...' : '');
+            model = model || 'Model Yok';
+
+            // === YIL ===
+            let yil = v.yil || v.year || '';
+            if (typeof yil === 'string') yil = parseInt(yil) || '';
+            yil = yil || '-';
+
+            // === KM ===
+            let km = v.km || details['KM'] || '';
+            if (typeof km === 'string') km = parseInt(km.replace(/\D/g, '')) || 0;
+            km = km > 0 ? formatNumber(km) : '-';
+
+            // === YAKIT ===
+            let yakit = v.yakit || details['Yakıt Tipi'] || details['Yakıt'] || '';
+            yakit = yakit || '-';
+
+            // === VİTES ===
+            let vites = v.vites || details['Vites'] || '';
+            vites = vites || '-';
+
+            // === FİYAT ===
+            let fiyat = v.fiyat || v.price || 0;
+            if (typeof fiyat === 'string') fiyat = parseInt(fiyat.replace(/\D/g, '')) || 0;
+            fiyat = fiyat > 0 ? formatPrice(fiyat) + ' ₺' : 'Fiyat Yok';
+
+            // === AI TAHMİN ===
+            const ai_tahmin = v.ai_tahmin > 0 ? formatPrice(v.ai_tahmin) + ' ₺' : '-';
+
+            // === KONUM ===
+            let konum = v.il ? (v.ilce ? v.il + ' / ' + v.ilce : v.il) : '-';
+
+            // === HASAR ===
+            const hasar_puani = v.hasar_puani || 0;
+            const boyali_count = Array.isArray(v.boyali_parcalar) ? v.boyali_parcalar.length : 0;
+            const degisen_count = Array.isArray(v.degisen_parcalar) ? v.degisen_parcalar.length : 0;
+            const boya_degisen = v.boya_degisen || 'Belirtilmemiş';
+
+            return {
+                marka, model, yil, km, yakit, vites, fiyat, ai_tahmin,
+                ai_firsat: v.ai_firsat || false, fark: v.fark || 0, konum,
+                hasar_puani, boyali_count, degisen_count, boya_degisen
+            };
+        }
+
+        function renderPagination(totalPages) {
+            const pagination = document.getElementById('pagination');
+
+            // If totalPages not provided, try to assume from context or just return if 0
+            if (!totalPages) return;
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            // Previous button
+            html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left"></i>
+            </button>`;
+
+            // Page numbers logic
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            // Next button
+            html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>
+                <i class="fas fa-chevron-right"></i>
+            </button>`;
+
+            pagination.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            // We don't verify against max pages here easily without global totalPages, 
+            // but backend handles out of bounds usually (returns empty).
+            // Better to check if page < 1
+            if (page < 1) return;
+
+            currentPage = page;
+            loadVehicles(); // Uses current filters + new page
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function getFilterParams() {
+            const params = {};
+            const brand = document.getElementById('filterBrand').value;
+            const model = document.getElementById('filterModel').value;
+            const minPrice = document.getElementById('filterMinPrice').value;
+            const maxPrice = document.getElementById('filterMaxPrice').value;
+            const year = document.getElementById('filterYear').value;
+
+            if (brand) params.brand = brand;
+            if (model) params.model = model;
+            if (minPrice) params.min_price = minPrice;
+            if (maxPrice) params.max_price = maxPrice;
+            if (year) params.min_year = year;
+
+            return params;
+        }
+
+        function updateVehicleCount(count) {
+            document.getElementById('vehicleCount').textContent = `(${count} araç)`;
+        }
+
+        async function updateStats() {
+            try {
+                const params = getFilterParams();
+                const queryParams = new URLSearchParams(params).toString();
+                const response = await fetch(`/api/stats?${queryParams}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('statTotal').textContent = result.data.total;
+                    document.getElementById('statFirsatlar').textContent = result.data.firsatlar;
+                    document.getElementById('statAvgPrice').textContent = formatPrice(result.data.avg_price) + ' ₺';
+                    document.getElementById('firsatCount').textContent = result.data.firsatlar;
+                }
+            } catch (error) {
+                console.error('Stats hatası:', error);
+            }
+        }
+
+        async function updateFirsatCount() {
+            // ... (remains same or redundant if using updateStats)
+            try {
+                const response = await fetch('/api/firsatlar');
+                const result = await response.json();
+                if (result.success) {
+                    // Update stats (but distinct from filtered stats?)
+                    // The filtered stats 'firsatCount' is updated by updateStats.
+                    // This fetches global firsat count for "Notification" maybe?
+                    // Let's keep it simple.
+                }
+            } catch (error) { }
+        }
+
+        // ========== SCRAPING ==========
+
+        // ========== FILTERS ==========
+        function loadModels() {
+            const brand = document.getElementById('filterBrand').value;
+            const modelSelect = document.getElementById('filterModel').value;
+            const modelSelectElem = document.getElementById('filterModel');
+            modelSelectElem.innerHTML = '<option value="">Tüm Modeller</option>';
+
+            if (brand) {
+                for (const [key, info] of Object.entries(categories)) {
+                    if (info.display_name === brand) {
+                        for (const [modelKey, modelInfo] of Object.entries(info.models)) {
+                            const option = document.createElement('option');
+                            option.value = modelInfo.name;
+                            option.textContent = modelInfo.name;
+                            modelSelectElem.appendChild(option);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        function applyFilters() {
+            currentPage = 1;
+            const params = getFilterParams();
+            loadVehicles(params);
+            updateStats();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterBrand').value = '';
+            document.getElementById('filterModel').value = '';
+            document.getElementById('filterMinPrice').value = '';
+            document.getElementById('filterMaxPrice').value = '';
+            document.getElementById('filterYear').value = '';
+
+            currentPage = 1;
+            loadVehicles();
+            updateStats();
+        }
+
+        function filterByModel(brand, model) {
+            document.getElementById('filterBrand').value = brand;
+            loadModels();
+            setTimeout(() => {
+                document.getElementById('filterModel').value = model;
+                applyFilters();
+            }, 100);
+        }
+
+        function loadAllVehicles() {
+            resetFilters();
+        }
+
+        function loadFirsatlar() {
+            loadVehicles({ firsatlar: 'true' });
+        }
+
+        // ========== ACTIONS ==========
+        async function updateAI() {
+            if (confirm('AI tahminleri güncellenmeli mi?')) {
+                try {
+                    const response = await fetch('/update-ai', { method: 'POST' });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showNotification('AI güncelleme başlatıldı', 'success');
+                    }
+                } catch (error) {
+                    showNotification('Hata oluştu', 'error');
+                }
+            }
+        }
+
+        async function cleanDuplicates() {
+            if (confirm('Mükerrer kayıtlar silinsin mi?')) {
+                try {
+                    const response = await fetch('/clean-duplicates', { method: 'POST' });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showNotification(result.message, 'success');
+                        loadVehicles();
+                        updateStats();
+                    }
+                } catch (error) {
+                    showNotification('Hata oluştu', 'error');
+                }
+            }
+        }
+
+        function refreshData() {
+            loadVehicles();
+            updateStats();
+            showNotification('Veriler yenilendi', 'info');
+        }
+
+        function exportData() {
+            let csv = 'Marka,Model,Başlık,Yıl,KM,Fiyat,AI Tahmini,Fark,Yakıt,Vites,İl,URL\n';
+
+            vehiclesData.forEach(v => {
+                csv += `"${v.marka || ''}","${v.model || ''}","${v.baslik || ''}",${v.yil || ''},${v.km || ''},${v.fiyat || ''},${v.ai_tahmin || ''},${v.fark || ''},"${v.yakit || ''}","${v.vites || ''}","${v.il || ''}","${v.url || ''}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `ekergallery_export_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+
+            showNotification('CSV dosyası indirildi', 'success');
+        }
+
+        // ========== UI HELPERS ==========
+        function toggleSubmenu(parent) {
+            parent.classList.toggle('open');
+            const submenu = parent.nextElementSibling;
+            submenu.classList.toggle('open');
+        }
+
+        function formatPrice(num) {
+            return new Intl.NumberFormat('tr-TR').format(num || 0);
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000) {
+                return (num / 1000).toFixed(0) + 'K';
+            }
+            return new Intl.NumberFormat('tr-TR').format(num || 0);
+        }
+
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: '#3fb950',
+                error: '#f85149',
+                info: '#58a6ff'
+            };
+
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                padding: 16px 24px;
+                background: ${colors[type]};
+                color: white;
+                border-radius: 8px;
+                font-weight: 600;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>
